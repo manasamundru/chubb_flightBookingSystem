@@ -1,0 +1,86 @@
+package com.flightapp.controllers;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.flightapp.dto.SearchRequest;
+import com.flightapp.entities.FlightInventory;
+import com.flightapp.services.FlightService;
+import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.http.MediaType;
+import org.springframework.test.web.servlet.MockMvc;
+
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.Collections;
+
+import static org.mockito.ArgumentMatchers.any;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+
+@WebMvcTest(FlightController.class)
+class FlightControllerTest {
+
+    @Autowired
+    private MockMvc mockMvc;
+
+    @MockBean
+    private FlightService flightService;
+
+    @Autowired
+    private ObjectMapper objectMapper;
+
+    @Test
+    void addInventory_success() throws Exception {
+        FlightInventory inv = FlightInventory.builder()
+                .id(1L)
+                .flightNumber("AI202")
+                .fromPlace("Hyd")
+                .toPlace("Delhi")
+                .departureTime(LocalDateTime.now().plusDays(2))
+                .arrivalTime(LocalDateTime.now().plusDays(2).plusHours(2))
+                .totalSeats(100)
+                .availableSeats(100)
+                .price(5000)
+                .build();
+
+        Mockito.when(flightService.addInventory(any())).thenReturn(inv);
+
+        mockMvc.perform(post("/api/v1.0/flight/airline/inventory/add")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(inv)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.flightNumber").value("AI202"));
+    }
+
+    @Test
+    void searchFlights_success() throws Exception {
+        SearchRequest req = new SearchRequest();
+        req.setFromPlace("Hyd");
+        req.setToPlace("Delhi");
+        req.setJourneyDate(LocalDate.now().plusDays(1));
+
+        FlightInventory flight = new FlightInventory();
+        flight.setFlightNumber("AI101");
+
+        Mockito.when(flightService.search(any()))
+                .thenReturn(Collections.singletonList(flight));
+
+        mockMvc.perform(post("/api/v1.0/flight/search")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(req)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].flightNumber").value("AI101"));
+    }
+    @Test
+    void search_invalidRequest_returnsBadRequest() throws Exception {
+        mockMvc.perform(post("/api/v1.0/flight/search")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{}"))
+                .andExpect(status().isBadRequest());
+    }
+
+}
+

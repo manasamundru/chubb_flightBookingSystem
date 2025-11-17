@@ -1,0 +1,18 @@
+package com.flightapp.dto;
+
+import lombok.Data;
+
+import javax.validation.constraints.NotBlank;
+import javax.validation.constraints.NotNull;
+import java.time.LocalDate;
+
+@Data
+public class SearchRequest {
+    @NotBlank
+    private String fromPlace;
+    @NotBlank
+    private String toPlace;
+    @NotNull
+    private LocalDate journeyDate;
+}
+

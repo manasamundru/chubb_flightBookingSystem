@@ -1,0 +1,42 @@
+package com.flightapp.controllers;
+
+import com.flightapp.dto.BookingRequest;
+import com.flightapp.entities.Booking;
+import com.flightapp.services.BookingService;
+
+import jakarta.validation.Valid;
+
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+import java.util.List;
+
+@RestController
+@RequestMapping("/api/v1.0/flight/booking")
+public class BookingController {
+    private final BookingService bookingService;
+
+    public BookingController(BookingService bookingService) {
+        this.bookingService = bookingService;
+    }
+    @PostMapping("/{flightId}")
+    public ResponseEntity<Booking> book(@PathVariable Long flightId, @Valid @RequestBody BookingRequest req) {
+        Booking b = bookingService.book(flightId, req);
+        return ResponseEntity.ok(b);
+    }
+    @GetMapping("/ticket/{pnr}")
+    public ResponseEntity<Booking> ticket(@PathVariable String pnr) {
+        Booking b = bookingService.findByPnr(pnr);
+        if (b == null) return ResponseEntity.notFound().build();
+        return ResponseEntity.ok(b);
+    }
+    @GetMapping("/history/{email}")
+    public ResponseEntity<List<Booking>> history(@PathVariable String email) {
+        return ResponseEntity.ok(bookingService.history(email));
+    }
+    @DeleteMapping("/cancel/{pnr}")
+    public ResponseEntity<Booking> cancel(@PathVariable String pnr) {
+        Booking b = bookingService.cancel(pnr);
+        return ResponseEntity.ok(b);
+    }
+}
+

@@ -1,0 +1,134 @@
+package com.flightapp.services;
+
+import com.flightapp.dto.BookingRequest;
+import com.flightapp.dto.PassengerRequest;
+import com.flightapp.entities.Booking;
+import com.flightapp.entities.FlightInventory;
+import com.flightapp.repositories.BookingRepository;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
+import java.time.LocalDateTime;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Optional;
+
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
+
+class BookingServiceTest {
+
+    BookingRepository bookingRepo;
+    FlightService flightService;
+    BookingService bookingService;
+
+    @BeforeEach
+    void setup(){
+        bookingRepo = mock(BookingRepository.class);
+        flightService = mock(FlightService.class);
+        bookingService = new BookingService(bookingRepo, flightService);
+    }
+
+    @Test
+    void book_success() {
+        FlightInventory flight = FlightInventory.builder()
+                .id(1L)
+                .availableSeats(5)
+                .totalSeats(5)
+                .departureTime(LocalDateTime.now().plusDays(2))
+                .build();
+        when(flightService.findById(1L)).thenReturn(flight);
+
+        BookingRequest req = new BookingRequest();
+        req.setName("John");
+        req.setEmail("john@example.com");
+        req.setSeats(2);
+        PassengerRequest p1 = new PassengerRequest();
+        p1.setName("P1"); p1.setGender("M"); p1.setAge(30);
+        PassengerRequest p2 = new PassengerRequest();
+        p2.setName("P2"); p2.setGender("F"); p2.setAge(28);
+        req.setPassengers(Arrays.asList(p1,p2));
+
+        when(bookingRepo.save(any())).thenAnswer(i -> i.getArgument(0));
+
+        Booking booking = bookingService.book(1L, req);
+
+        assertNotNull(booking.getPnr());
+        assertEquals(2, booking.getSeatsBooked());
+        verify(bookingRepo, times(1)).save(any());
+        assertEquals(3, flight.getAvailableSeats());
+    }
+
+    @Test
+    void cancel_tooLate_throws() {
+        FlightInventory flight = FlightInventory.builder()
+                .id(1L)
+                .availableSeats(5)
+                .totalSeats(5)
+                .departureTime(LocalDateTime.now().plusHours(12))
+                .build();
+        Booking b = Booking.builder().pnr("PNR1").flight(flight).seatsBooked(1).cancelled(false).build();
+        when(bookingRepo.findByPnr("PNR1")).thenReturn(Optional.of(b));
+
+        Exception ex = assertThrows(IllegalArgumentException.class, () -> bookingService.cancel("PNR1"));
+        assertTrue(ex.getMessage().contains("Cannot cancel"));
+    }
+    @Test
+    void book_flightNotFound_throws() {
+        when(flightService.findById(1L)).thenReturn(null);
+
+        BookingRequest req = new BookingRequest();
+        req.setName("User");
+        req.setEmail("user@gmail.com");
+        req.setSeats(1);
+        req.setPassengers(Collections.singletonList(new PassengerRequest()));
+
+        assertThrows(IllegalArgumentException.class, () -> bookingService.book(1L, req));
+    }
+
+    @Test
+    void book_notEnoughSeats_throws() {
+        FlightInventory flight = FlightInventory.builder()
+                .id(1L)
+                .availableSeats(0)
+                .totalSeats(1)
+                .departureTime(LocalDateTime.now().plusDays(1))
+                .build();
+
+        when(flightService.findById(1L)).thenReturn(flight);
+
+        BookingRequest req = new BookingRequest();
+        req.setName("User");
+        req.setEmail("user@gmail.com");
+        req.setSeats(1);
+        req.setPassengers(Collections.singletonList(new PassengerRequest()));
+
+        assertThrows(IllegalArgumentException.class, () -> bookingService.book(1L, req));
+    }
+
+    @Test
+    void cancel_pnrNotFound_throws() {
+        when(bookingRepo.findByPnr("ABC")).thenReturn(Optional.empty());
+
+        assertThrows(IllegalArgumentException.class, () -> bookingService.cancel("ABC"));
+    }
+
+    @Test
+    void cancel_alreadyCancelled_throws() {
+        FlightInventory f = FlightInventory.builder()
+                .departureTime(LocalDateTime.now().plusDays(2))
+                .build();
+
+        Booking booking = Booking.builder()
+                .pnr("PNR")
+                .cancelled(true)
+                .flight(f)
+                .build();
+
+        when(bookingRepo.findByPnr("PNR")).thenReturn(Optional.of(booking));
+
+        assertThrows(IllegalArgumentException.class, () -> bookingService.cancel("PNR"));
+    }
+
+}
+

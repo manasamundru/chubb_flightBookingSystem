@@ -1,0 +1,135 @@
+package com.flightapp.controllers;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.flightapp.dto.BookingRequest;
+import com.flightapp.dto.PassengerRequest;
+import com.flightapp.entities.Booking;
+import com.flightapp.entities.FlightInventory;
+import com.flightapp.services.BookingService;
+import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.http.MediaType;
+import org.springframework.test.web.servlet.MockMvc;
+
+import java.time.LocalDateTime;
+import java.util.Collections;
+
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+
+@WebMvcTest(BookingController.class)
+class BookingControllerTest {
+
+    @Autowired
+    private MockMvc mockMvc;
+
+    @MockBean
+    private BookingService bookingService;
+
+    @Autowired
+    private ObjectMapper objectMapper;
+
+    @Test
+    void bookTicket_success() throws Exception {
+
+        PassengerRequest p = new PassengerRequest();
+        p.setName("John");
+        p.setGender("Male");
+        p.setAge(25);
+
+        BookingRequest req = new BookingRequest();
+        req.setName("Test User");
+        req.setEmail("test@gmail.com");
+        req.setSeats(1);
+        req.setPassengers(Collections.singletonList(p));
+
+        FlightInventory inv = new FlightInventory();
+        inv.setFlightNumber("AI202");
+        inv.setDepartureTime(LocalDateTime.now().plusDays(2));
+
+        Booking booking = Booking.builder()
+                .pnr("PNR12345")
+                .name("Test User")
+                .seatsBooked(1)
+                .flight(inv)
+                .build();
+
+        Mockito.when(bookingService.book(eq(1L), any()))
+                .thenReturn(booking);
+
+        mockMvc.perform(post("/api/v1.0/flight/booking/1")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(req)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.pnr").value("PNR12345"));
+    }
+
+    @Test
+    void getTicket_success() throws Exception {
+        Booking booking = Booking.builder()
+                .pnr("PNR12345")
+                .name("User")
+                .seatsBooked(1)
+                .build();
+
+        Mockito.when(bookingService.findByPnr("PNR12345"))
+                .thenReturn(booking);
+
+        mockMvc.perform(get("/api/v1.0/flight/booking/ticket/PNR12345"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.pnr").value("PNR12345"));
+    }
+
+    @Test
+    void getHistory_success() throws Exception {
+        Booking booking = Booking.builder()
+                .pnr("PNR12345")
+                .email("test@gmail.com")
+                .build();
+
+        Mockito.when(bookingService.history("test@gmail.com"))
+                .thenReturn(Collections.singletonList(booking));
+
+        mockMvc.perform(get("/api/v1.0/flight/booking/history/test@gmail.com"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].pnr").value("PNR12345"));
+    }
+
+    @Test
+    void cancelTicket_success() throws Exception {
+        Booking booking = Booking.builder()
+                .pnr("PNR12345")
+                .cancelled(true)
+                .build();
+
+        Mockito.when(bookingService.cancel("PNR12345"))
+                .thenReturn(booking);
+
+        mockMvc.perform(delete("/api/v1.0/flight/booking/cancel/PNR12345"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.cancelled").value(true));
+    }
+    @Test
+    void book_invalidRequest_returnsBadRequest() throws Exception {
+        // missing required fields
+        mockMvc.perform(post("/api/v1.0/flight/booking/1")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{}"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void ticket_notFound_returnsNotFound() throws Exception {
+    	Mockito.when(bookingService.findByPnr("XYZ")).thenReturn(null);
+
+        mockMvc.perform(get("/api/v1.0/flight/booking/ticket/XYZ"))
+                .andExpect(status().isNotFound());
+    }
+
+}

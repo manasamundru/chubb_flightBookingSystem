@@ -1,0 +1,30 @@
+package com.flightapp.entities;
+
+import lombok.*;
+
+import javax.persistence.*;
+import java.time.LocalDateTime;
+
+@Entity
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+public class FlightInventory {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    private String flightNumber;
+    private String fromPlace;
+    private String toPlace;
+    private LocalDateTime departureTime;
+    private LocalDateTime arrivalTime;
+    private int totalSeats;
+    private int availableSeats;
+    private double price;
+
+    @ManyToOne
+    private Airline airline;
+}
+

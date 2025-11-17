@@ -1,0 +1,21 @@
+package com.flightapp.dto;
+
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotBlank;
+import lombok.Data;
+
+
+@Data
+public class PassengerRequest {
+    @NotBlank
+    private String name;
+    @NotBlank
+    private String gender;
+    @Min(0)
+    @Max(100)
+    private int age;
+    private String mealPref;
+    private String seatNumber;
+}
+

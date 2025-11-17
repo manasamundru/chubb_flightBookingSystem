@@ -1,0 +1,34 @@
+package com.flightapp.services;
+
+import com.flightapp.dto.SearchRequest;
+import com.flightapp.entities.FlightInventory;
+import com.flightapp.repositories.FlightInventoryRepository;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.util.List;
+
+@Service
+public class FlightService {
+	@Autowired
+	private final FlightInventoryRepository repo;
+
+	public FlightService(FlightInventoryRepository repo) {
+		this.repo = repo;
+	}
+	public FlightInventory addInventory(FlightInventory inv) {
+		inv.setAvailableSeats(inv.getTotalSeats());
+		return repo.save(inv);
+	}
+	public List<FlightInventory> search(SearchRequest req) {
+		LocalDateTime start = req.getJourneyDate().atStartOfDay();
+		LocalDateTime end = req.getJourneyDate().atTime(LocalTime.MAX);
+		return repo.findByFromPlaceAndToPlaceAndDepartureTimeBetween(req.getFromPlace(), req.getToPlace(), start, end);
+	}
+	public FlightInventory findById(Long id) {
+		return repo.findById(id).orElse(null);
+	}
+}

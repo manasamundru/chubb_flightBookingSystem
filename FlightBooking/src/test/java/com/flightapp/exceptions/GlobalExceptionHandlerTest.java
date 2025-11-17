@@ -1,0 +1,31 @@
+package com.flightapp.exceptions;
+
+import com.flightapp.controllers.BookingController;
+import com.flightapp.services.BookingService;
+import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.web.servlet.MockMvc;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+
+@WebMvcTest(BookingController.class)
+class GlobalExceptionHandlerTest {
+    @Autowired
+    MockMvc mockMvc;
+    @MockBean
+    BookingService bookingService;
+    @Test
+    void illegalArgumentExceptionHandled() throws Exception {
+        Mockito.when(bookingService.findByPnr(anyString()))
+                .thenThrow(new IllegalArgumentException("Invalid PNR"));
+
+        mockMvc.perform(get("/api/v1.0/flight/booking/ticket/123"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Invalid PNR"));
+    }
+}
+

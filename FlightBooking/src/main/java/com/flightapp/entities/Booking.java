@@ -1,0 +1,45 @@
+package com.flightapp.entities;
+
+import lombok.*;
+
+import java.time.LocalDateTime;
+import java.util.List;
+
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+
+@Entity
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+public class Booking {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+    @NotNull
+    @NotBlank
+    private String pnr;
+    @Email
+    private String email;
+    @NotNull
+    @NotBlank
+    private String name;
+    private int seatsBooked;
+    private LocalDateTime bookedAt;
+    @ManyToOne
+    private FlightInventory flight;
+    @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Passenger> passengers;
+    private boolean cancelled;
+    private LocalDateTime cancelledAt;
+}
+

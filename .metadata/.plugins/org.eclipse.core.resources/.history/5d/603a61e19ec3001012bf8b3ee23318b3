@@ -1,0 +1,45 @@
+package com.flightapp.services;
+
+import com.flightapp.dto.SearchRequest;
+import com.flightapp.entities.FlightInventory;
+import com.flightapp.repositories.FlightInventoryRepository;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.util.Arrays;
+import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
+
+class FlightServiceTest {
+
+    FlightInventoryRepository repo;
+    FlightService service;
+
+    @BeforeEach
+    void setup() {
+        repo = mock(FlightInventoryRepository.class);
+        service = new FlightService(repo);
+    }
+
+    @Test
+    void search_returnsList() {
+        SearchRequest req = new SearchRequest();
+        req.setFromPlace("A");
+        req.setToPlace("B");
+        req.setJourneyDate(LocalDate.now().plusDays(1));
+
+        LocalDateTime start = req.getJourneyDate().atStartOfDay();
+        LocalDateTime end = req.getJourneyDate().atTime(LocalTime.MAX);
+
+        FlightInventory f = FlightInventory.builder().id(1L).flightNumber("F1").build();
+        when(repo.findByFromPlaceAndToPlaceAndDepartureTimeBetween("A","B",start,end)).thenReturn(Arrays.asList(f));
+
+        List<FlightInventory> res = service.search(req);
+        assertEquals(1, res.size());
+    }
+}
